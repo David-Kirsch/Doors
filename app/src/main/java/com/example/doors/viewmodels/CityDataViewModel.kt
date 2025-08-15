@@ -13,7 +13,7 @@ class CityDataViewModel {
 
     val cityApi = RetrofitHelper.getInstance().create(CityDataApi::class.java)
 
-
+    //test
 
     suspend fun getData(streetNum: String, streetName: String, zipcode: String, boro: String) {
         val result = cityApi.getData(streetNum, streetName, boro, zipcode)
