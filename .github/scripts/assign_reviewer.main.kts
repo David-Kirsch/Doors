@@ -12,12 +12,13 @@
 
 import org.kohsuke.github.GitHub
 import org.kohsuke.github.GHUser
+import org.kohsuke.github.GHRepository
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-fun getLastModifier(filePath: String, prAuthor: String): String? {
+fun findValidReviewerForFile(filePath: String, prAuthor: String, github: GitHub, repo: GHRepository): GHUser? {
     try {
-        // Use %an to get the author's name directly, instead of their email (%ae)
+        // Use %an to get the author's name directly
         val process = ProcessBuilder("git", "log", "--pretty=format:%an", filePath)
             .redirectOutput(ProcessBuilder.Redirect.PIPE)
             .redirectError(ProcessBuilder.Redirect.PIPE)
@@ -26,16 +27,35 @@ fun getLastModifier(filePath: String, prAuthor: String): String? {
         process.waitFor(10, TimeUnit.SECONDS)
         val output = process.inputStream.bufferedReader().readText().lines()
 
+        // Iterate through the history to find the first valid collaborator
         for (authorName in output) {
-            if (authorName.isBlank()) continue
-            // Compare the author name directly with the PR author's login
-            if (authorName.lowercase() != prAuthor.lowercase()) {
-                return authorName
+            if (authorName.isBlank() || authorName.lowercase() == prAuthor.lowercase()) {
+                continue // Skip blank lines or the PR author
+            }
+
+            try {
+                println("  - Checking potential reviewer: $authorName")
+                val user = github.getUser(authorName)
+                if (repo.isCollaborator(user)) {
+                    println("    -> Found valid collaborator: ${user.login}")
+                    return user // Found a valid reviewer, return them
+                } else {
+                    println("    -> Not a collaborator.")
+                }
+            } catch (e: org.kohsuke.github.GHFileNotFoundException) {
+                println("    -> Could not find GitHub user '$authorName'.")
+                continue // User not found, try the next one
+            } catch (e: Exception) {
+                println("    -> Error checking collaborator status for $authorName: ${e.message}")
+                continue // Some other error, try the next one
             }
         }
     } catch (e: Exception) {
         println("Error checking git log for $filePath: ${e.message}")
     }
+    
+    // If the loop finishes, no valid reviewer was found in the file's history
+    println("  - No valid past collaborator found for this file.")
     return null
 }
 
@@ -60,24 +80,9 @@ fun main() {
 
         for (file in changedFiles) {
             println("Checking file: ${file.filename}")
-            val lastModifierUsername = getLastModifier(file.filename, prAuthor)
-            if (lastModifierUsername != null) {
-                println("Found last modifier for ${file.filename}: $lastModifierUsername")
-                try {
-                    // Convert the username string to a GHUser object
-                    val user = github.getUser(lastModifierUsername)
-                    
-                    // Check if the user is a collaborator before adding
-                    if (repo.isCollaborator(user)) {
-                        reviewersToAdd.add(user)
-                    } else {
-                        println("User $lastModifierUsername is not a collaborator. Skipping.")
-                    }
-                } catch (e: org.kohsuke.github.GHFileNotFoundException) {
-                    println("Could not find GitHub user '$lastModifierUsername'. Skipping.")
-                } catch (e: Exception) {
-                     println("Could not verify if $lastModifierUsername is a collaborator. Error: ${e.message}")
-                }
+            val validReviewer = findValidReviewerForFile(file.filename, prAuthor, github, repo)
+            if (validReviewer != null) {
+                reviewersToAdd.add(validReviewer)
             }
         }
 
