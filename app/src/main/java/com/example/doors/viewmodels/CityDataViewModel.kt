@@ -13,6 +13,8 @@ class CityDataViewModel {
 
     val cityApi = RetrofitHelper.getInstance().create(CityDataApi::class.java)
 
+    //test
+
     /**
      * Fetches data from the CityDataApi based on the provided parameters.
      *
