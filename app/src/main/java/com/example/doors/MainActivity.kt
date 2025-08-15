@@ -43,7 +43,6 @@ import kotlinx.coroutines.launch
 import kotlin.coroutines.coroutineContext
 
 class MainActivity : ComponentActivity() {
-    //test
 
     override fun onCreate(savedInstanceState: Bundle?) {
 //        cityDataViewModel.data.observe(this,  {
