@@ -5,6 +5,8 @@
 // 2. jackson-databind-2.17.0.jar: https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.17.0/jackson-databind-2.17.0.jar
 // 3. jackson-core-2.17.0.jar: https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-core/2.17.0/jackson-core-2.17.0.jar
 // 4. jackson-annotations-2.17.0.jar: https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-annotations/2.17.0/jackson-annotations-2.17.0.jar
+// 5. commons-lang3-3.12.0.jar: https://repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.jar
+// 6. commons-io-2.11.0.jar: https://repo1.maven.org/maven2/commons-io/commons-io/2.11.0/commons-io-2.11.0.jar
 //
 // Place these .jar files in a new directory: .github/scripts/libs/
 
@@ -15,7 +17,8 @@ import java.util.concurrent.TimeUnit
 
 fun getLastModifier(filePath: String, prAuthor: String): String? {
     try {
-        val process = ProcessBuilder("git", "log", "--pretty=format:%ae", filePath)
+        // Use %an to get the author's name directly, instead of their email (%ae)
+        val process = ProcessBuilder("git", "log", "--pretty=format:%an", filePath)
             .redirectOutput(ProcessBuilder.Redirect.PIPE)
             .redirectError(ProcessBuilder.Redirect.PIPE)
             .start()
@@ -23,22 +26,17 @@ fun getLastModifier(filePath: String, prAuthor: String): String? {
         process.waitFor(10, TimeUnit.SECONDS)
         val output = process.inputStream.bufferedReader().readText().lines()
 
-        for (email in output) {
-            if (email.isBlank()) continue
-            val username = getGithubUsernameFromEmail(email)
-            if (username.lowercase() != prAuthor.lowercase()) {
-                return username
+        for (authorName in output) {
+            if (authorName.isBlank()) continue
+            // Compare the author name directly with the PR author's login
+            if (authorName.lowercase() != prAuthor.lowercase()) {
+                return authorName
             }
         }
     } catch (e: Exception) {
         println("Error checking git log for $filePath: ${e.message}")
     }
     return null
-}
-
-fun getGithubUsernameFromEmail(email: String): String {
-    // This is a simplification. A more robust solution might query the GitHub API.
-    return email.split('@')[0]
 }
 
 fun main() {
