@@ -29,6 +29,8 @@ fun findValidReviewerForFile(filePath: String, prAuthor: String, github: GitHub,
 
         // Iterate through the history to find the first valid collaborator
         for (authorName in output) {
+            println($output)
+
             if (authorName.isBlank() || authorName.lowercase() == prAuthor.lowercase()) {
                 continue // Skip blank lines or the PR author
             }
