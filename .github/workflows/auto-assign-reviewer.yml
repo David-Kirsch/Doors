@@ -28,4 +28,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          kotlin -cp .github/scripts/libs/*:. .github/scripts/assign_reviewer.main.kts
+          # Build the classpath string manually to avoid wildcard issues
+          # The 'JARS' variable will contain a colon-separated list of all jar files.
+          JARS=$(find .github/scripts/libs -name "*.jar" | tr '\n' ':').
+          echo "Classpath: $JARS"
+          kotlin -cp "$JARS" .github/scripts/assign_reviewer.main.kts
