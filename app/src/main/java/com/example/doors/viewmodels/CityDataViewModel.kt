@@ -22,6 +22,8 @@ class CityDataViewModel {
      * @param boro The borough of the city.
      */
 
+    //test
+
     suspend fun getData(streetNum: String, streetName: String, zipcode: String, boro: String) {
         val result = cityApi.getData(streetNum, streetName, boro, zipcode)
         if (result.isSuccessful) {
