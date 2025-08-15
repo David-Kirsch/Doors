@@ -13,7 +13,6 @@ class CityDataViewModel {
 
     val cityApi = RetrofitHelper.getInstance().create(CityDataApi::class.java)
 
-    //test
     //test1
 
     /**
