@@ -44,11 +44,6 @@ import kotlin.coroutines.coroutineContext
 
 class MainActivity : ComponentActivity() {
 
-    //test
-
-    //testing
-    //testing1
-
     override fun onCreate(savedInstanceState: Bundle?) {
 //        cityDataViewModel.data.observe(this,  {
 //            RecyclerView(it)
