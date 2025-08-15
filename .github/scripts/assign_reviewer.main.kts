@@ -9,6 +9,7 @@
 // Place these .jar files in a new directory: .github/scripts/libs/
 
 import org.kohsuke.github.GitHub
+import org.kohsuke.github.GHUser
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -57,30 +58,35 @@ fun main() {
 
         // --- Get changed files and find reviewers ---
         val changedFiles = pr.listFiles()
-        val reviewersToAdd = mutableSetOf<String>()
+        val reviewersToAdd = mutableSetOf<GHUser>()
 
         for (file in changedFiles) {
             println("Checking file: ${file.filename}")
-            val lastModifier = getLastModifier(file.filename, prAuthor)
-            if (lastModifier != null) {
-                println("Found last modifier for ${file.filename}: $lastModifier")
+            val lastModifierUsername = getLastModifier(file.filename, prAuthor)
+            if (lastModifierUsername != null) {
+                println("Found last modifier for ${file.filename}: $lastModifierUsername")
                 try {
+                    // Convert the username string to a GHUser object
+                    val user = github.getUser(lastModifierUsername)
+                    
                     // Check if the user is a collaborator before adding
-                    if (repo.isCollaborator(lastModifier)) {
-                        reviewersToAdd.add(lastModifier)
+                    if (repo.isCollaborator(user)) {
+                        reviewersToAdd.add(user)
                     } else {
-                        println("User $lastModifier is not a collaborator. Skipping.")
+                        println("User $lastModifierUsername is not a collaborator. Skipping.")
                     }
+                } catch (e: org.kohsuke.github.GHFileNotFoundException) {
+                    println("Could not find GitHub user '$lastModifierUsername'. Skipping.")
                 } catch (e: Exception) {
-                     println("Could not verify if $lastModifier is a collaborator. Adding anyway. Error: ${e.message}")
-                     reviewersToAdd.add(lastModifier)
+                     println("Could not verify if $lastModifierUsername is a collaborator. Error: ${e.message}")
                 }
             }
         }
 
         // --- Assign reviewers ---
         if (reviewersToAdd.isNotEmpty()) {
-            println("Requesting review from: $reviewersToAdd")
+            val reviewerLogins = reviewersToAdd.map { it.login }
+            println("Requesting review from: $reviewerLogins")
             pr.requestReviewers(reviewersToAdd.toList())
         } else {
             println("No suitable reviewers found.")
