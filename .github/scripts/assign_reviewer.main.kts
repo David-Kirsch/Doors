@@ -17,6 +17,7 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 fun findValidReviewerForFile(filePath: String, prAuthor: String, github: GitHub, repo: GHRepository): GHUser? {
+    var process: Process? = null
     try {
         // Use %an to get the author's name directly
         val process = ProcessBuilder("git", "log", "--pretty=format:%an", filePath)
@@ -24,7 +25,15 @@ fun findValidReviewerForFile(filePath: String, prAuthor: String, github: GitHub,
             .redirectError(ProcessBuilder.Redirect.PIPE)
             .start()
 
-        process.waitFor(10, TimeUnit.SECONDS)
+        // Wait for the process to finish, with a timeout
+        val finishedInTime = process.waitFor(10, TimeUnit.SECONDS)
+
+        if (!finishedInTime) {
+            println("  - Git log for '$filePath' took too long. Processing partial log.")
+            process.destroyForcibly()
+        }
+
+        // Read the output, which will be partial if the process was destroyed
         val output = process.inputStream.bufferedReader().readText().lines()
 
         // Iterate through the history to find the first valid collaborator
